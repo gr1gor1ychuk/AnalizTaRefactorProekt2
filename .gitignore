@@ -1,0 +1,7 @@
+# SonarQube
+.scannerwork/
+.sonar/
+sonar-scanner/
+coverage.xml
+test-results.xml
+.env 

@@ -1,0 +1,50 @@
+sequenceDiagram
+    participant Client
+    participant API
+    participant Builder
+    participant Equipment
+    participant Decorator
+    participant Strategy
+    participant Chain
+    participant Singleton
+
+    Note over Client,Singleton: Процес створення та обробки замовлення
+
+    Client->>API: Запит на створення обладнання
+    
+    API->>Builder: create_equipment()
+    Note over Builder: Builder Pattern
+    Builder->>Equipment: build()
+    Equipment-->>API: new Equipment
+
+    Client->>API: Додати послуги (гарантія/страхування)
+    API->>Decorator: create_decorator(equipment)
+    Note over Decorator: Decorator Pattern
+    Decorator->>Equipment: get_price()
+    Equipment-->>Decorator: base_price
+    Decorator-->>API: modified_price
+
+    Client->>API: Розрахувати ціну (bulk/seasonal)
+    API->>Strategy: calculate_price(equipment)
+    Note over Strategy: Strategy Pattern
+    Strategy->>Equipment: get_price()
+    Equipment-->>Strategy: base_price
+    Strategy-->>API: final_price
+
+    Client->>API: Створити замовлення
+    API->>Chain: process_order(order)
+    Note over Chain: Chain of Responsibility
+    Chain->>Singleton: check_stock()
+    Note over Singleton: Singleton Pattern
+    Singleton-->>Chain: stock_status
+    Chain->>Chain: validate_payment()
+    Chain->>Chain: fulfill_order()
+    Chain-->>API: order_status
+    API-->>Client: Підтвердження замовлення
+
+    Note over Client,Singleton: Використані патерни:
+    Note over Client,Singleton: 1. Builder - створення обладнання
+    Note over Client,Singleton: 2. Decorator - додавання послуг
+    Note over Client,Singleton: 3. Strategy - розрахунок цін
+    Note over Client,Singleton: 4. Chain of Responsibility - обробка замовлення
+    Note over Client,Singleton: 5. Singleton - управління інвентарем 

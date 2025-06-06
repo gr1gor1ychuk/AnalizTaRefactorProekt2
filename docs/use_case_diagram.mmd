@@ -1,0 +1,38 @@
+graph TD
+    subgraph "Спортивне обладнання - Use Case"
+        User(("Користувач"))
+        Admin(("Адміністратор"))
+        
+        UC1["Перегляд каталогу"]
+        UC2["Пошук обладнання"]
+        UC3["Додавання в кошик"]
+        UC4["Оформлення замовлення"]
+        UC5["Вибір додаткових послуг"]
+        UC6["Управління обладнанням"]
+        UC7["Управління замовленнями"]
+        UC8["Управління знижками"]
+        
+        User --> UC1
+        User --> UC2
+        User --> UC3
+        User --> UC4
+        User --> UC5
+        
+        Admin --> UC6
+        Admin --> UC7
+        Admin --> UC8
+        
+        UC3 --> UC5
+        UC5 --> UC4
+    end
+
+    style User fill:#f9f,stroke:#333,stroke-width:2px
+    style Admin fill:#bbf,stroke:#333,stroke-width:2px
+    style UC1 fill:#dfd,stroke:#333,stroke-width:1px
+    style UC2 fill:#dfd,stroke:#333,stroke-width:1px
+    style UC3 fill:#dfd,stroke:#333,stroke-width:1px
+    style UC4 fill:#dfd,stroke:#333,stroke-width:1px
+    style UC5 fill:#dfd,stroke:#333,stroke-width:1px
+    style UC6 fill:#dfd,stroke:#333,stroke-width:1px
+    style UC7 fill:#dfd,stroke:#333,stroke-width:1px
+    style UC8 fill:#dfd,stroke:#333,stroke-width:1px 

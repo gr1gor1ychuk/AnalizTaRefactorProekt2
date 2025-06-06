@@ -1,0 +1,104 @@
+classDiagram
+    class Equipment {
+        +String id
+        +String name
+        +String description
+        +float base_price
+        +String category
+        +EquipmentSpecs specs
+        +get_price()
+        +to_dict()
+    }
+
+    class EquipmentSpecs {
+        +String weight
+        +String dimensions
+        +String material
+        +String color
+        +String max_user_weight
+        +String warranty_months
+        +validate()
+    }
+
+    class EquipmentInventory {
+        -Dict _equipment_stock
+        -Dict _equipment_items
+        -Dict _orders
+        +add_equipment()
+        +remove_equipment()
+        +get_equipment()
+        +is_in_stock()
+    }
+
+    class PricingStrategy {
+        <<abstract>>
+        +calculate_price()
+    }
+
+    class RegularPricingStrategy {
+        +calculate_price()
+    }
+
+    class BulkPricingStrategy {
+        -int threshold
+        -float discount_percent
+        +calculate_price()
+    }
+
+    class SeasonalPricingStrategy {
+        -float discount_percent
+        +calculate_price()
+    }
+
+    class Order {
+        +String id
+        +Equipment equipment
+        +int quantity
+        +String customer_id
+        +String status
+        +validate()
+    }
+
+    class OrderProcessor {
+        <<abstract>>
+        +process()
+        #_validate()
+    }
+
+    class OrderProcessorChain {
+        -StockValidator stock_validator
+        -PaymentProcessor payment_processor
+        -OrderFulfillment order_fulfillment
+        +process_order()
+    }
+
+    class EquipmentDecorator {
+        <<abstract>>
+        -Equipment equipment
+        +get_price()
+    }
+
+    class WarrantyDecorator {
+        -int years
+        +get_price()
+    }
+
+    class InsuranceDecorator {
+        -String level
+        +get_price()
+    }
+
+    Equipment "1" -- "1" EquipmentSpecs
+    EquipmentInventory "1" -- "*" Equipment
+    EquipmentInventory "1" -- "*" Order
+    Equipment "1" -- "*" Order
+    PricingStrategy <|-- RegularPricingStrategy
+    PricingStrategy <|-- BulkPricingStrategy
+    PricingStrategy <|-- SeasonalPricingStrategy
+    OrderProcessor <|-- StockValidator
+    OrderProcessor <|-- PaymentProcessor
+    OrderProcessor <|-- OrderFulfillment
+    OrderProcessorChain -- OrderProcessor
+    Equipment <|-- EquipmentDecorator
+    EquipmentDecorator <|-- WarrantyDecorator
+    EquipmentDecorator <|-- InsuranceDecorator 

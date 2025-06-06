@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Магазин спортивного обладнання</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .equipment-card {
+            margin-bottom: 20px;
+            height: 100%;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .equipment-card:hover {
+            transform: translateY(-5px);
+        }
+        .specs-table {
+            margin-top: 15px;
+            margin-bottom: 20px;
+        }
+        .specs-table td {
+            padding: 5px 10px;
+        }
+        .specs-table td:first-child {
+            font-weight: bold;
+            width: 40%;
+        }
+        .cart-section {
+            position: sticky;
+            top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .cart-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 10px;
+        }
+        .cart-total {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+        .color-select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .services-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .service-option {
+            margin-bottom: 10px;
+        }
+        .service-option label {
+            margin-left: 8px;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">SportEquip</a>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <div class="row">
+            <!-- Список обладнання -->
+            <div class="col-md-8">
+                <h2 class="mb-4">Доступне обладнання</h2>
+                <div id="equipment-list">
+                    <!-- Тут буде список обладнання -->
+                </div>
+            </div>
+            
+            <!-- Кошик -->
+            <div class="col-md-4">
+                <div class="cart-section">
+                    <h3>Кошик</h3>
+                    <div id="cart-items">
+                        <!-- Тут будуть товари в кошику -->
+                        <p class="text-muted" id="empty-cart-message">Кошик порожній</p>
+                    </div>
+                    <div id="cart-total" class="cart-total d-none">
+                        Загальна сума: <span id="total-amount">$0.00</span>
+                    </div>
+                    
+                    <!-- Форма оформлення замовлення -->
+                    <form id="orderForm" class="mt-4 d-none">
+                        <h4>Оформлення замовлення</h4>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email:</label>
+                            <input type="email" class="form-control" id="email" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Телефон:</label>
+                            <input type="tel" class="form-control" id="phone">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Адреса доставки:</label>
+                            <textarea class="form-control" id="address" required></textarea>
+                        </div>
+                        
+                        <button type="button" class="btn btn-primary w-100" onclick="createOrder()">
+                            Оформити замовлення
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Глобальні змінні
+        let availableColors = {};
+        let cartItems = [];
+        
+        // Ініціалізація при завантаженні сторінки
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await loadColors();
+                await loadEquipment();
+                
+                // Prevent label click propagation globally
+                document.addEventListener('click', function(e) {
+                    if (e.target.tagName === 'LABEL') {
+                        e.stopPropagation();
+                    }
+                }, true);
+            } catch (error) {
+                console.error('Error during initialization:', error);
+            }
+        });
+        
+        // Завантаження доступних кольорів
+        async function loadColors() {
+            try {
+                const response = await fetch('/static/colors.json');
+                availableColors = await response.json();
+                console.log('Loaded colors:', availableColors);
+            } catch (error) {
+                console.error('Error loading colors:', error);
+                availableColors = {
+                    "Black": "Чорний",
+                    "White": "Білий",
+                    "Silver": "Сріблястий",
+                    "Red": "Червоний",
+                    "Blue": "Синій",
+                    "Black/Red": "Чорний з червоним",
+                    "Gray": "Сірий"
+                };
+            }
+        }
+        
+        // Завантаження списку обладнання
+        async function loadEquipment() {
+            const response = await fetch('/equipment/');
+            const equipment = await response.json();
+            displayEquipment(equipment);
+        }
+        
+        // Відображення обладнання на сторінці
+        function displayEquipment(equipment) {
+            const container = document.getElementById('equipment-list');
+            container.innerHTML = equipment.map(item => {
+                const uniqueId = `${item.category}-${item.id}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                
+                // Створюємо опції кольорів прямо тут
+                const colorOptions = Object.entries(availableColors)
+                    .map(([code, name]) => `
+                        <option value="${code}" ${code === item.specs.color ? 'selected' : ''}>
+                            ${name}
+                        </option>
+                    `).join('');
+                
+                return `
+                    <div class="card equipment-card mb-4" id="card-${uniqueId}">
+                        <div class="card-body">
+                            <h3 class="card-title">${item.name}</h3>
+                            <p class="card-text">${item.description}</p>
+                            
+                            <table class="specs-table">
+                                <tr>
+                                    <td>Ціна:</td>
+                                    <td>$${item.base_price.toFixed(2)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Категорія:</td>
+                                    <td>${item.category}</td>
+                                </tr>
+                                <tr>
+                                    <td>Вага:</td>
+                                    <td>${item.specs.weight} кг</td>
+                                </tr>
+                                <tr>
+                                    <td>Розміри:</td>
+                                    <td>${item.specs.dimensions} см</td>
+                                </tr>
+                                <tr>
+                                    <td>Матеріал:</td>
+                                    <td>${item.specs.material}</td>
+                                </tr>
+                                <tr>
+                                    <td>Максимальна вага користувача:</td>
+                                    <td>${item.specs.max_user_weight} кг</td>
+                                </tr>
+                                <tr>
+                                    <td>Гарантія:</td>
+                                    <td>${item.specs.warranty_months} місяців</td>
+                                </tr>
+                            </table>
+                            
+                            <div class="order-options">
+                                <label class="form-label" for="color-${uniqueId}">Виберіть колір:</label>
+                                <select class="color-select form-select" id="color-${uniqueId}">
+                                    ${colorOptions}
+                                </select>
+                                
+                                <div class="services-section">
+                                    <h5>Додаткові послуги:</h5>
+                                    <div class="form-check mb-2" onclick="event.stopPropagation()">
+                                        <input type="checkbox" class="form-check-input" id="warranty-${uniqueId}">
+                                        <label class="form-check-label" for="warranty-${uniqueId}">
+                                            Розширена гарантія (+${(item.base_price * 0.1).toFixed(2)}$)
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2" onclick="event.stopPropagation()">
+                                        <input type="checkbox" class="form-check-input" id="installation-${uniqueId}">
+                                        <label class="form-check-label" for="installation-${uniqueId}">
+                                            Установка (+${(50 + item.specs.weight * 0.5).toFixed(2)}$)
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2" onclick="event.stopPropagation()">
+                                        <input type="checkbox" class="form-check-input" id="maintenance-${uniqueId}">
+                                        <label class="form-check-label" for="maintenance-${uniqueId}">
+                                            Обслуговування (+${(item.base_price * 0.05).toFixed(2)}$ на місяць)
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2" onclick="event.stopPropagation()">
+                                        <input type="checkbox" class="form-check-input" id="insurance-${uniqueId}">
+                                        <label class="form-check-label" for="insurance-${uniqueId}">
+                                            Страхування (+${(item.base_price * 0.05).toFixed(2)}$)
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">Кількість:</span>
+                                    <input type="number" class="form-control" id="quantity-${uniqueId}" value="1" min="1">
+                                </div>
+                                
+                                <button class="btn btn-primary w-100" onclick="addToCart('${uniqueId}', '${item.id}', '${item.name}', ${item.base_price}, ${item.specs.weight})">
+                                    Додати до кошика
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Розрахунок вартості послуг
+        function calculateServicesPrice(uniqueId, basePrice, weight) {
+            let servicesPrice = 0;
+            let selectedServices = [];
+            
+            if (document.getElementById(`warranty-${uniqueId}`).checked) {
+                servicesPrice += basePrice * 0.1;
+                selectedServices.push('Розширена гарантія');
+            }
+            if (document.getElementById(`installation-${uniqueId}`).checked) {
+                servicesPrice += 50 + weight * 0.5;
+                selectedServices.push('Установка');
+            }
+            if (document.getElementById(`maintenance-${uniqueId}`).checked) {
+                servicesPrice += basePrice * 0.05;
+                selectedServices.push('Обслуговування');
+            }
+            if (document.getElementById(`insurance-${uniqueId}`).checked) {
+                servicesPrice += basePrice * 0.05;
+                selectedServices.push('Страхування');
+            }
+            
+            return { price: servicesPrice, services: selectedServices };
+        }
+        
+        // Додавання товару до кошика
+        function addToCart(uniqueId, itemId, itemName, basePrice, weight) {
+            console.log('Adding to cart:', { uniqueId, itemId, itemName, basePrice, weight }); // Debug log
+            
+            const quantity = parseInt(document.getElementById(`quantity-${uniqueId}`).value);
+            const color = document.getElementById(`color-${uniqueId}`).value;
+            const services = calculateServicesPrice(uniqueId, basePrice, weight);
+            
+            const totalPrice = (basePrice + services.price) * quantity;
+            
+            const cartItem = {
+                id: itemId,
+                uniqueId: uniqueId,
+                cartId: Date.now() + Math.random(), // Unique ID for cart item
+                name: itemName,
+                quantity: quantity,
+                color: color,
+                basePrice: basePrice,
+                servicesPrice: services.price,
+                totalPrice: totalPrice,
+                services: services.services
+            };
+            
+            console.log('Cart item to add:', cartItem); // Debug log
+            console.log('Current cart items:', cartItems); // Debug log
+            
+            cartItems.push(cartItem);
+            
+            console.log('Cart items after addition:', cartItems); // Debug log
+            updateCartDisplay();
+        }
+        
+        // Видалення товару з кошика
+        function removeFromCart(cartId) {
+            console.log('Removing item with cartId:', cartId); // Debug log
+            console.log('Cart items before removal:', cartItems); // Debug log
+            
+            cartItems = cartItems.filter(item => item.cartId !== cartId);
+            
+            console.log('Cart items after removal:', cartItems); // Debug log
+            updateCartDisplay();
+        }
+        
+        // Оновлення відображення кошика
+        function updateCartDisplay() {
+            const cartContainer = document.getElementById('cart-items');
+            const totalElement = document.getElementById('cart-total');
+            const emptyMessage = document.getElementById('empty-cart-message');
+            const orderForm = document.getElementById('orderForm');
+            
+            console.log('Updating cart display. Current items:', cartItems); // Debug log
+            console.log('Available colors:', availableColors); // Debug log
+            
+            if (!cartContainer || !totalElement || !emptyMessage || !orderForm) {
+                console.error('Required DOM elements not found:', {
+                    cartContainer: !!cartContainer,
+                    totalElement: !!totalElement,
+                    emptyMessage: !!emptyMessage,
+                    orderForm: !!orderForm
+                });
+                return;
+            }
+            
+            if (cartItems.length === 0) {
+                emptyMessage.style.display = 'block';
+                totalElement.classList.add('d-none');
+                orderForm.classList.add('d-none');
+                cartContainer.innerHTML = '';
+                return;
+            }
+            
+            emptyMessage.style.display = 'none';
+            let html = '';
+            let total = 0;
+            
+            cartItems.forEach(item => {
+                const colorName = availableColors[item.color] || item.color;
+                html += `
+                    <div class="cart-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>${item.name}</strong><br>
+                                <small class="text-muted">
+                                    Колір: ${colorName}<br>
+                                    Кількість: ${item.quantity}<br>
+                                    Базова ціна: $${(item.basePrice * item.quantity).toFixed(2)}<br>
+                                    ${item.services.length ? `Послуги: ${item.services.join(', ')}<br>` : ''}
+                                    ${item.servicesPrice > 0 ? `Вартість послуг: $${(item.servicesPrice * item.quantity).toFixed(2)}<br>` : ''}
+                                    <strong>Загальна вартість: $${item.totalPrice.toFixed(2)}</strong>
+                                </small>
+                            </div>
+                            <button class="btn btn-sm btn-danger" onclick="removeFromCart('${item.cartId}')">×</button>
+                        </div>
+                    </div>
+                `;
+                total += item.totalPrice;
+            });
+            
+            cartContainer.innerHTML = html;
+            totalElement.classList.remove('d-none');
+            orderForm.classList.remove('d-none');
+            document.getElementById('total-amount').textContent = `$${total.toFixed(2)}`;
+        }
+        
+        // Створення замовлення
+        async function createOrder() {
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const address = document.getElementById('address').value;
+            
+            if (!email || !address) {
+                alert('Будь ласка, заповніть обов\'язкові поля (Email та адресу доставки)');
+                return;
+            }
+            
+            try {
+                for (const item of cartItems) {
+                    const orderData = {
+                        equipment_id: item.id,
+                        quantity: item.quantity,
+                        customer_id: email,
+                        customer_email: email,
+                        shipping_address: address,
+                        color: item.color
+                    };
+                    
+                    console.log('Sending order data:', orderData);
+                    
+                    const response = await fetch('/orders', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(orderData)
+                    });
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Server response:', errorText);
+                        
+                        let errorMessage;
+                        try {
+                            const errorJson = JSON.parse(errorText);
+                            errorMessage = errorJson.detail || errorText;
+                        } catch (e) {
+                            errorMessage = errorText;
+                        }
+                        
+                        throw new Error(errorMessage);
+                    }
+                    
+                    const result = await response.json();
+                    console.log('Order created:', result);
+                }
+                
+                alert('Замовлення успішно створено!');
+                cartItems = [];
+                updateCartDisplay();
+                
+                // Reset form fields
+                const orderForm = document.getElementById('orderForm');
+                if (orderForm && typeof orderForm.reset === 'function') {
+                    orderForm.reset();
+                }
+                
+            } catch (error) {
+                console.error('Order error:', error);
+                alert(`Помилка при створенні замовлення: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

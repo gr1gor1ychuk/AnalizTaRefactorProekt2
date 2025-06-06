@@ -1,0 +1,22 @@
+[run]
+source = src
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    pass
+    raise ImportError
+    except ImportError:
+    raise
+
+[paths]
+source =
+    src/
+    C:/My Things/Uni/Labs/3 course/Analiz ta refactoring/Proekt2/src/
+
+[xml]
+output = coverage.xml 
